@@ -93,7 +93,8 @@ import {
 } from "coral-server/models/user/helpers";
 import { MailerQueue } from "coral-server/queue/tasks/mailer";
 import { RejectorQueue } from "coral-server/queue/tasks/rejector";
-import { JWTSigningConfig, signPATString } from "coral-server/services/jwt";
+import { SigningConfig, signPATString } from "coral-server/services/jwt";
+import { Redis } from "coral-server/services/redis";
 import { sendConfirmationEmail } from "coral-server/services/users/auth";
 
 import {
@@ -102,7 +103,6 @@ import {
   GQLUSER_ROLE,
 } from "coral-server/graph/schema/__generated__/types";
 
-import { AugmentedRedis } from "../redis";
 import {
   generateAdminDownloadLink,
   generateDownloadLink,
@@ -496,14 +496,14 @@ export async function cancelAccountDeletion(
  *
  * @param mongo mongo database to interact with
  * @param tenant Tenant where the User will be interacted with
- * @param config signing configuration to create the signed token
+ * @param signingConfig signing configuration to create the signed token
  * @param user User that should get updated
  * @param name name of the Token
  */
 export async function createToken(
   mongo: Db,
   tenant: Tenant,
-  config: JWTSigningConfig,
+  signingConfig: SigningConfig,
   user: User,
   name: string,
   now = new Date()
@@ -513,7 +513,7 @@ export async function createToken(
 
   // Sign the token!
   const signedToken = await signPATString(
-    config,
+    signingConfig,
     user,
     {
       // Tokens are issued with the token ID as their JWT ID.
@@ -776,7 +776,7 @@ export async function updateEmail(
   tenant: Tenant,
   mailer: MailerQueue,
   config: Config,
-  signingConfig: JWTSigningConfig,
+  signingConfig: SigningConfig,
   user: User,
   emailAddress: string,
   password: string,
@@ -1316,7 +1316,7 @@ export async function requestCommentsDownload(
   mailer: MailerQueue,
   tenant: Tenant,
   config: Config,
-  signingConfig: JWTSigningConfig,
+  signingConfig: SigningConfig,
   user: User,
   now: Date
 ) {
@@ -1374,7 +1374,7 @@ export async function requestUserCommentsDownload(
   mongo: Db,
   tenant: Tenant,
   config: Config,
-  signingConfig: JWTSigningConfig,
+  signingConfig: SigningConfig,
   userID: string,
   now: Date
 ) {
@@ -1423,7 +1423,7 @@ function userLastCommentIDKey(
  * @param commentID the id of the comment
  */
 export async function updateUserLastCommentID(
-  redis: AugmentedRedis,
+  redis: Redis,
   tenant: Tenant,
   user: User,
   commentID: string
@@ -1445,7 +1445,7 @@ export async function updateUserLastCommentID(
  */
 export async function retrieveUserLastComment(
   mongo: Db,
-  redis: AugmentedRedis,
+  redis: Redis,
   tenant: Tenant,
   user: User
 ): Promise<Readonly<Comment> | null> {
